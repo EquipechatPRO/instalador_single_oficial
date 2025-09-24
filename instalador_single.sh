@@ -5,6 +5,9 @@ BLUE='\033[1;34m'
 WHITE='\033[1;37m'
 RED='\033[1;31m'
 YELLOW='\033[1;33m'
+CYAN='\033[1;36m'
+MAGENTA='\033[1;35m'
+NC='\033[0m' # No Color
 
 # Variaveis Padrão
 ARCH=$(uname -m)
@@ -26,40 +29,21 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 banner() {
-  printf "${BLUE}"
+  printf "${WHITE}"
   printf "\n\n"
   
-  # Array com os frames da animação
-  local frames=(
-printf ${CYAN_LIGHT}"    _____ _____ _   _ ___________ _____ _____  _   _   ___ _____ \n";
-printf ${CYAN_LIGHT}"   |  ___|  _  | | | |_   _| ___ \  ___/  __ \| | | | / _ \_   _| \n";
-printf ${CYAN_LIGHT}"   | |__ | | | | | | | | | | |_/ / |__ | /  \/| |_| |/ /_\ \| |  \n";
-printf ${CYAN_LIGHT}"   |  __|| | | | | | | | | |  __/|  __|| |    |  _  ||  _  || |  \n";
-printf ${CYAN_LIGHT}"   | |___\ \/' / |_| |_| |_| |   | |___| \__/\| | | || | | || |  \n";
-printf ${CYAN_LIGHT}"   \____/ \_/\_\\___/ \___/\_|   \____/ \____/\_| |_/\_| |_/\_/  \n";
-    "                                        INSTALADOR 1.0\n"
-  )
-
-  # Sequência de cores para animação
-  local colors=("${BLUE}" "${GREEN}" "${YELLOW}" "${RED}" "${MAGENTA}" "${CYAN}")
+  # Banner estático em branco
+  printf "    _____ _____ _   _ ___________ _____ _____  _   _   ___ _____ \n"
+  printf "   |  ___|  _  | | | |_   _| ___ \\  ___/  __ \\| | | | / _ \\_   _| \n"
+  printf "   |  __ | | | | | | | | | | |_/ / |__ | /  \\/| |_| |/ /_\\ \\| |  \n"
+  printf "   |  __|| | | | | | | | | |  __/|  __|| |    |  _  ||  _  || |  \n"
+  printf "   | |___\\ \\/' / |_| |_| |_| |   | |___| \\__/\\| | | || | | || |  \n"
+  printf "   \\____/ \\_/\\_\\\\___/ \\___/\\_|   \\____/ \\____/\\_| |_/\\_| |_/\\_/  \n"
+  printf "                                        INSTALADOR 1.0\n"
+  printf "\n\n"
   
-  # Loop de animação (3 ciclos)
-  for i in {0..5}; do
-    clear
-    printf "${colors[i]}"
-    printf "\n\n"
-    
-    # Imprime cada linha do frame atual
-    for line in "${frames[@]}"; do
-      printf "$line"
-    done
-    
-    printf "\n\n"
-    sleep 0.2
-  done
-
-  # Mantém a cor azul ao final da animação
-  printf "${BLUE}"
+  # Mantém a cor branca para o conteúdo subsequente
+  printf "${WHITE}"
 }
 
 # Função para manipular erros e encerrar o script
@@ -748,11 +732,11 @@ EOF
   } || trata_erro "instala_postgres_base"
 }
 
-Instala NodeJS
+# Instala NodeJS
 instala_node_base() {
   banner
- printf "${WHITE} >> Instalando nodejs...\n"
- echo
+  printf "${WHITE} >> Instalando nodejs...\n"
+  echo
   {
     sudo su - root <<EOF
   curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
