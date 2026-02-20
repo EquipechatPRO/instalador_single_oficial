@@ -14,182 +14,175 @@ ip_atual=$(curl -s http://checkip.amazonaws.com)
 default_apioficial_port=6000
 
 if [ "$EUID" -ne 0 ]; then
-  echo
-  printf "${WHITE} >> Este script precisa ser executado como root ${RED}ou com privilégios de superusuário${WHITE}.\n"
-  echo
-  sleep 2
-  exit 1
+    echo
+    printf "${WHITE} >> Este script precisa ser executado como root ${RED}ou com privilégios de superusuário${WHITE}.\n"
+    echo
+    sleep 2
+    exit 1
 fi
 
-# Função para manipular erros e encerrar o script
+# Função para manipular erros
 trata_erro() {
-  printf "${RED}Erro encontrado na etapa $1. Encerrando o script.${WHITE}\n"
-  exit 1
+    printf "${RED}Erro encontrado na etapa $1. Encerrando o script.${WHITE}\n"
+    exit 1
 }
 
 # Banner
 banner() {
-  clear
-  printf "${BLUE}"
-  echo "╔══════════════════════════════════════════════════════════════╗"
-  echo "║                    INSTALADOR API OFICIAL                    ║"
-  echo "║                                                              ║"
-  echo "║                    MultiFlow System                          ║"
-  echo "╚══════════════════════════════════════════════════════════════╝"
-  printf "${WHITE}"
-  echo
-}
-
-# Carregar variáveis
-carregar_variaveis() {
-  if [ -f $ARQUIVO_VARIAVEIS ]; then
-    source $ARQUIVO_VARIAVEIS
-  else
-    empresa="multiflow"
-    nome_titulo="MultiFlow"
-  fi
-}
-
-# Solicitar dados do subdomínio da API Oficial
-solicitar_dados_apioficial() {
-  banner
-  printf "${WHITE} >> Insira o subdomínio da API Oficial: \n"
-  echo
-  read -p "> " subdominio_oficial
-  echo
-  printf "   ${WHITE}Subdominio API Oficial: ---->> ${YELLOW}${subdominio_oficial}\n"
-  echo "subdominio_oficial=${subdominio_oficial}" >>$ARQUIVO_VARIAVEIS
-  echo
-  echo
-  printf "${WHITE} >> Insira o email para registro no certbot: \n"
-  echo
-  read -p "> " email_deploy
-  echo
-  echo "email_deploy=${email_deploy}" >> $ARQUIVO_VARIAVEIS
-
-}
-
-# Validação de DNS
-verificar_dns_apioficial() {
-  banner
-  printf "${WHITE} >> Verificando o DNS do subdomínio da API Oficial...\n"
-  echo
-  sleep 2
-  sudo apt-get install dnsutils -y >/dev/null 2>&1
-
-  local domain=${subdominio_oficial}
-  local resolved_ip
-  local cname_target
-
-  cname_target=$(dig +short CNAME ${domain})
-
-  if [ -n "${cname_target}" ]; then
-    resolved_ip=$(dig +short ${cname_target})
-  else
-    resolved_ip=$(dig +short ${domain})
-  fi
-
-  if [ "${resolved_ip}" != "${ip_atual}" ]; then
-    echo "O domínio ${domain} (resolvido para ${resolved_ip}) não está apontando para o IP público atual (${ip_atual})."
+    clear
+    printf "${BLUE}"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                    INSTALADOR API OFICIAL                    ║"
+    echo "║                                                              ║"
+    echo "║                    MultiFlow System                          ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    printf "${WHITE}"
     echo
-    printf "${RED} >> Verifique o apontamento de DNS do subdomínio: ${subdominio_oficial}${WHITE}\n"
-    sleep 5
-    exit 1
-  else
-    echo "Subdomínio ${domain} está apontando corretamente para o IP público da VPS."
-    sleep 2
-  fi
-  echo
-  printf "${WHITE} >> Continuando...\n"
-  sleep 2
-  echo
 }
 
-# Configurar Nginx para API Oficial
-configurar_nginx_apioficial() {
-  banner
-  printf "${WHITE} >> Configurando Nginx para API Oficial...\n"
-  echo
-  {
-    oficial_hostname=$(echo "${subdominio_oficial/https:\/\//}")
-    sudo su - root <<EOF
-cat > /etc/nginx/sites-available/${empresa}-oficial << 'END'
-upstream oficial {
-        server 127.0.0.1:${default_apioficial_port};
-        keepalive 32;
-    }
-server {
-  server_name ${oficial_hostname};
-  location / {
-    proxy_pass http://oficial;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_cache_bypass \$http_upgrade;
-    proxy_buffering on;
-  }
-}
-END
-ln -s /etc/nginx/sites-available/${empresa}-oficial /etc/nginx/sites-enabled
-EOF
-
-    sleep 2
-
+reparo_nginx_critico() {
     banner
-    printf "${WHITE} >> Emitindo SSL do ${subdominio_oficial}...\n"
-    echo
-    oficial_domain=$(echo "${subdominio_oficial/https:\/\//}")
-    sudo su - root <<EOF
-    certbot -m ${email_deploy} \
-            --nginx \
-            --agree-tos \
-            -n \
-            -d ${oficial_domain}
-EOF
-
+    printf "${YELLOW} >> Executando Reparo Crítico de Configuração do Nginx...${WHITE}\n"
+    sudo rm -f /etc/nginx/sites-enabled/-oficial
+    sudo rm -f /etc/nginx/sites-available/-oficial
+    sudo sed -i '/include \/etc\/nginx\/sites-enabled\/-oficial;/d' /etc/nginx/nginx.conf
+    
+    printf "${GREEN} >> Reparo concluído. Testando a configuração do Nginx...${WHITE}\n"
+    sudo nginx -t
+    if [ $? -ne 0 ]; then
+        printf "${RED} >> ERRO: O Nginx ainda não passou no teste de configuração.${WHITE}\n"
+        exit 1
+    fi
+    printf "${GREEN} >> Nginx pronto. Continuando...${WHITE}\n"
     sleep 2
-  } || trata_erro "configurar_nginx_apioficial"
 }
 
-# Criar banco de dados para API Oficial
+# --- FUNÇÃO EDITADA PARA PEGAR DADOS DO BACKEND ---
+carregar_variaveis() {
+    if [ -f "$ARQUIVO_VARIAVEIS" ]; then
+        source "$ARQUIVO_VARIAVEIS"
+    else
+        printf "${YELLOW} >> Arquivo $ARQUIVO_VARIAVEIS não encontrado. Buscando dados no backend...${WHITE}\n"
+        
+        # Define os padrões conforme sua estrutura
+        empresa="multiflow"
+        nome_titulo="MultiFlow"
+        backend_env_path="/home/deploy/${empresa}/backend/.env"
+
+        if [ -f "${backend_env_path}" ]; then
+            # Extrai as variáveis do .env do backend
+            # Adaptado para pegar DB_PASS ou POSTGRES_PASSWORD
+            senha_deploy=$(grep "^DB_PASS=" "${backend_env_path}" | cut -d '=' -f2- | tr -d '\r')
+            [ -z "$senha_deploy" ] && senha_deploy=$(grep "^POSTGRES_PASSWORD=" "${backend_env_path}" | cut -d '=' -f2- | tr -d '\r')
+            
+            # Pega o email para o SSL
+            email_deploy=$(grep "^USER_EMAIL=" "${backend_env_path}" | cut -d '=' -f2- | tr -d '\r')
+            
+            # Cria o arquivo para evitar erros em passos futuros que leem este arquivo
+            echo "empresa=${empresa}" > "$ARQUIVO_VARIAVEIS"
+            echo "nome_titulo=${nome_titulo}" >> "$ARQUIVO_VARIAVEIS"
+            echo "senha_deploy=${senha_deploy}" >> "$ARQUIVO_VARIAVEIS"
+            echo "email_deploy=${email_deploy}" >> "$ARQUIVO_VARIAVEIS"
+            
+            printf "${GREEN} >> Dados carregados com sucesso de: ${backend_env_path}${WHITE}\n"
+            sleep 2
+        else
+            printf "${RED} >> ERRO: Arquivo .env não encontrado em ${backend_env_path}${WHITE}\n"
+            exit 1
+        fi
+    fi
+}
+
+carregar_subdominio_backend() {
+    if [ -z "${subdominio_backend}" ]; then
+        local backend_env_path="/home/deploy/${empresa}/backend/.env"
+        if [ -f "${backend_env_path}" ]; then
+            local subdominio_backend_full=$(grep "^BACKEND_URL=" "${backend_env_path}" 2>/dev/null | cut -d '=' -f2- | tr -d '\r')
+            subdominio_backend=$(echo "${subdominio_backend_full}" | sed 's|https://||g' | sed 's|http://||g' | cut -d'/' -f1)
+            echo "subdominio_backend=${subdominio_backend}" >>$ARQUIVO_VARIAVEIS
+        else
+            printf "${RED} >> ERRO: Não foi possível encontrar o .env do backend.${WHITE}\n"
+            exit 1
+        fi
+    fi
+}
+
+solicitar_dados_apioficial() {
+    local temp_subdominio_oficial
+    banner
+    printf "${WHITE} >> Insira o subdomínio da API Oficial (Ex: api.seusistema.com.br): \n"
+    read -p "> " temp_subdominio_oficial
+    subdominio_oficial=$(echo "${temp_subdominio_oficial}" | sed 's|https://||g' | sed 's|http://||g' | cut -d'/' -f1)
+    echo "subdominio_oficial=${subdominio_oficial}" >>$ARQUIVO_VARIAVEIS
+}
+
+verificar_dns_apioficial() {
+    banner
+    printf "${WHITE} >> Verificando o DNS do subdomínio: ${subdominio_oficial}...\n"
+    if ! command -v dig &> /dev/null; then
+        sudo apt-get update >/dev/null 2>&1
+        sudo apt-get install dnsutils -y >/dev/null 2>&1
+    fi
+    local resolved_ip=$(dig +short ${subdominio_oficial} @8.8.8.8)
+    if [[ "${resolved_ip}" != "${ip_atual}"* ]] || [ -z "${resolved_ip}" ]; then
+        printf "${RED} >> ERRO: DNS não aponta para este IP (${ip_atual}).${WHITE}\n"
+        sleep 5
+        exit 1
+    fi
+}
+
+configurar_nginx_apioficial() {
+    banner
+    printf "${WHITE} >> Configurando Nginx e SSL...\n"
+    local sites_available_path="/etc/nginx/sites-available/${empresa}-oficial"
+    local sites_enabled_link="/etc/nginx/sites-enabled/${empresa}-oficial"
+
+    sudo rm -f "${sites_enabled_link}"
+    sudo rm -f "${sites_available_path}"
+
+    sudo bash -c "cat > ${sites_available_path} << 'END'
+upstream oficial {
+    server 127.0.0.1:${default_apioficial_port};
+    keepalive 32;
+}
+server {
+    server_name ${subdominio_oficial};
+    location / {
+        proxy_pass http://oficial;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+END"
+    sudo ln -sf ${sites_available_path} ${sites_enabled_link}
+    sudo systemctl reload nginx
+
+    sudo certbot -m "${email_deploy}" --nginx --agree-tos -n -d "${subdominio_oficial}"
+}
+
 criar_banco_apioficial() {
-  banner
-  printf "${WHITE} >> Criando banco de dados para API Oficial...\n"
-  echo
-  {
-    sudo -u postgres psql <<EOF
-CREATE DATABASE oficialseparado;
-\q
-EOF
-    printf "${GREEN} >> Banco de dados 'oficialseparado' criado com sucesso!${WHITE}\n"
-    sleep 2
-  } || trata_erro "criar_banco_apioficial"
+    banner
+    printf "${WHITE} >> Criando banco 'oficialseparado'...\n"
+    sudo -u postgres psql -c "CREATE DATABASE oficialseparado WITH OWNER ${empresa};"
 }
 
-# Configurar arquivo .env da API Oficial
 configurar_env_apioficial() {
-  banner
-  printf "${WHITE} >> Configurando arquivo .env da API Oficial...\n"
-  echo
-  {
-    # Carregar variáveis necessárias
-    source $ARQUIVO_VARIAVEIS
+    banner
+    printf "${WHITE} >> Configurando .env da API Oficial...\n"
+    local backend_env_path="/home/deploy/${empresa}/backend/.env"
+    local jwt_refresh_secret_backend=$(grep "^JWT_REFRESH_SECRET=" "${backend_env_path}" | cut -d '=' -f2- | tr -d '\r')
+    local backend_url_full=$(grep "^BACKEND_URL=" "${backend_env_path}" | cut -d '=' -f2- | tr -d '\r')
     
-    # Buscar JWT_REFRESH_SECRET do backend existente
-    jwt_refresh_secret_backend=$(grep "^JWT_REFRESH_SECRET=" /home/deploy/${empresa}/backend/.env | cut -d '=' -f2-)
+    local api_oficial_dir="/home/deploy/${empresa}/api_oficial"
+    mkdir -p "${api_oficial_dir}"
     
-    # Buscar BACKEND_URL do backend existente
-    backend_url=$(grep "^BACKEND_URL=" /home/deploy/${empresa}/backend/.env | cut -d '=' -f2-)
-    
-    # Criar diretório da API Oficial se não existir
-    mkdir -p /home/deploy/${empresa}/api_oficial
-    
-    # Criar arquivo .env
-    cat > /home/deploy/${empresa}/api_oficial/.env <<EOF
+    sudo -u deploy bash -c "cat > ${api_oficial_dir}/.env <<EOF
 DATABASE_LINK=postgresql://${empresa}:${senha_deploy}@localhost:5432/oficialseparado?schema=public
 DATABASE_URL=localhost
 DATABASE_PORT=5432
@@ -197,109 +190,65 @@ DATABASE_USER=${empresa}
 DATABASE_PASSWORD=${senha_deploy}
 DATABASE_NAME=oficialseparado
 TOKEN_ADMIN=adminpro
-URL_BACKEND_MULT100=https://${subdominio_backend}
+URL_BACKEND_MULT100=${backend_url_full}
+JWT_REFRESH_SECRET=${jwt_refresh_secret_backend}
 REDIS_URI=redis://:${senha_deploy}@127.0.0.1:6379
 PORT=${default_apioficial_port}
+URL_API_OFICIAL=${subdominio_oficial}
 NAME_ADMIN=SetupAutomatizado
 EMAIL_ADMIN=admin@multi100.com.br
 PASSWORD_ADMIN=adminpro
-JWT_REFRESH_SECRET=${jwt_refresh_secret_backend}
-URL_API_OFICIAL=https://${subdominio_oficial}
-EOF
-
-    printf "${GREEN} >> Arquivo .env da API Oficial configurado com sucesso!${WHITE}\n"
-    sleep 2
-  } || trata_erro "configurar_env_apioficial"
+EOF"
 }
 
-# Instalar e configurar API Oficial
 instalar_apioficial() {
-  banner
-  printf "${WHITE} >> Instalando e configurando API Oficial...\n"
-  echo
-  {
-    sudo su - deploy <<EOF
-cd /home/deploy/${empresa}/api_oficial
-
-printf "${WHITE} >> Instalando dependências...\n"
-npm install
-
-printf "${WHITE} >> Gerando Prisma...\n"
-npx prisma generate
-
-printf "${WHITE} >> Buildando aplicação...\n"
-npm run build
-
-printf "${WHITE} >> Executando migrações...\n"
-npx prisma migrate dev
-
-printf "${WHITE} >> Gerando cliente Prisma...\n"
-npx prisma generate client
-
-printf "${WHITE} >> Iniciando aplicação com PM2...\n"
-pm2 start dist/main.js --name=api_oficial
-
-printf "${GREEN} >> API Oficial instalada e configurada com sucesso!${WHITE}\n"
-sleep 2
-EOF
-  } || trata_erro "instalar_apioficial"
+    banner
+    printf "${WHITE} >> Rodando npm install e build...\n"
+    local api_oficial_dir="/home/deploy/${empresa}/api_oficial"
+    sudo su - deploy <<INSTALL_API
+    cd ${api_oficial_dir}
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+    npm install --force
+    npx prisma generate
+    npm run build
+    npx prisma migrate deploy
+    pm2 start dist/main.js --name=api_oficial
+    pm2 save
+INSTALL_API
 }
 
-# Atualizar .env do backend com URL da API Oficial
 atualizar_env_backend() {
-  banner
-  printf "${WHITE} >> Atualizando .env do backend com URL da API Oficial...\n"
-  echo
-  {
-    # Adicionar URL_API_OFICIAL ao .env do backend
-    echo "URL_API_OFICIAL=https://${subdominio_oficial}" >> /home/deploy/${empresa}/backend/.env
-    
-    printf "${GREEN} >> .env do backend atualizado com sucesso!${WHITE}\n"
-    sleep 2
-  } || trata_erro "atualizar_env_backend"
-}
-
-# Reiniciar serviços
-reiniciar_servicos() {
-  banner
-  printf "${WHITE} >> Reiniciando serviços...\n"
-  echo
-  {
-    sudo su - root <<EOF
-    if systemctl is-active --quiet nginx; then
-      sudo systemctl restart nginx
-    elif systemctl is-active --quiet traefik; then
-      sudo systemctl restart traefik.service
+    banner
+    printf "${WHITE} >> Vinculando API Oficial ao Backend...\n"
+    local backend_env_path="/home/deploy/${empresa}/backend/.env"
+    sudo sed -i 's|^USE_WHATSAPP_OFICIAL=.*|USE_WHATSAPP_OFICIAL=true|' "${backend_env_path}"
+    if grep -q "^URL_API_OFICIAL=" "${backend_env_path}"; then
+        sudo sed -i "s|^URL_API_OFICIAL=.*|URL_API_OFICIAL=https://${subdominio_oficial}|" "${backend_env_path}"
     else
-      printf "${GREEN}Nenhum serviço de proxy (Nginx ou Traefik) está em execução.${WHITE}"
+        echo "URL_API_OFICIAL=https://${subdominio_oficial}" | sudo tee -a "${backend_env_path}"
     fi
-EOF
-
-    printf "${GREEN} >> Serviços reiniciados com sucesso!${WHITE}\n"
-    sleep 2
-  } || trata_erro "reiniciar_servicos"
+    sudo su - deploy -c "pm2 reload ${empresa}-backend"
 }
 
-# Função principal
+reiniciar_servicos() {
+    sudo systemctl restart nginx
+}
+
 main() {
-  carregar_variaveis
-  solicitar_dados_apioficial
-  verificar_dns_apioficial
-  configurar_nginx_apioficial
-  criar_banco_apioficial
-  configurar_env_apioficial
-  instalar_apioficial
-  atualizar_env_backend
-  reiniciar_servicos
-  
-  banner
-  printf "${GREEN} >> Instalação da API Oficial concluída com sucesso!${WHITE}\n"
-  echo
-  printf "${WHITE} >> API Oficial disponível em: ${YELLOW}https://${subdominio_oficial}${WHITE}\n"
-  printf "${WHITE} >> Porta da API Oficial: ${YELLOW}${default_apioficial_port}${WHITE}\n"
-  echo
-  sleep 5
+    reparo_nginx_critico
+    carregar_variaveis
+    carregar_subdominio_backend
+    solicitar_dados_apioficial
+    verificar_dns_apioficial
+    configurar_nginx_apioficial 
+    criar_banco_apioficial
+    configurar_env_apioficial
+    instalar_apioficial
+    atualizar_env_backend
+    reiniciar_servicos
+    
+    banner
+    printf "${GREEN} >> Instalação concluída! https://${subdominio_oficial}${WHITE}\n"
 }
 
-# Executar função principal
 main
