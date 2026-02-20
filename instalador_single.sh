@@ -34,7 +34,7 @@ banner() {
   printf "██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ╚════██║██║███╗██║██║\n"
   printf "██║██║ ╚████║███████╗   ██║   ██║  ██║███████╗███████╗███████╗╚███╔███╔╝███████╗\n"
   printf "╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝ ╚══╝╚══╝ ╚══════╝\n"
-  printf "                                INSTALADOR 4.0\n"
+  printf "                                INSTALADOR 6.1\n"
   printf "\n\n"
 }
 
@@ -142,6 +142,102 @@ verificar_arquivos_existentes() {
   fi
 }
 
+# Função para instalar API WhatsMeow
+instalar_whatsmeow() {
+  banner
+  printf "${YELLOW}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  printf "${YELLOW}⚠️  ATENÇÃO:${WHITE}\n"
+  echo
+  printf "${WHITE}   A WhatsMeow é uma API Alternativa à Bayles, muito estável.${WHITE}\n"
+  printf "${WHITE}   Ela está disponível apenas para a versão do MultiFlow PRO${WHITE}\n"
+  printf "${WHITE}   - A partir da Versão ${BLUE}6.4.4${WHITE}.${WHITE}\n"
+  echo
+  printf "${YELLOW}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "${WHITE}   Deseja continuar? (S/N):${WHITE}\n"
+  echo
+  read -p "> " confirmacao_whatsmeow
+  confirmacao_whatsmeow=$(echo "${confirmacao_whatsmeow}" | tr '[:lower:]' '[:upper:]')
+  echo
+  
+  if [ "${confirmacao_whatsmeow}" != "S" ]; then
+    printf "${GREEN} >> Operação cancelada. Voltando ao menu de ferramentas...${WHITE}\n"
+    sleep 2
+    return
+  fi
+  
+  banner
+  printf "${WHITE} >> Digite o TOKEN de autorização do GitHub para acesso ao repositório multiflow-pro:${WHITE}\n"
+  echo
+  read -p "> " TOKEN_AUTH
+  
+  # Verificar se o token foi informado
+  if [ -z "$TOKEN_AUTH" ]; then
+    printf "${RED}❌ ERRO: Token de autorização não pode estar vazio.${WHITE}\n"
+    sleep 2
+    return
+  fi
+  
+  printf "${BLUE} >> Token de autorização recebido. Validando...${WHITE}\n"
+  echo
+  
+  # Validar o token usando a mesma lógica do atualizador_pro.sh
+  INSTALADOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  TEST_DIR="${INSTALADOR_DIR}/test_clone_$(date +%s)"
+  REPO_URL="https://${TOKEN_AUTH}@github.com/scriptswhitelabel/multiflow-pro.git"
+  
+  printf "${WHITE} >> Validando token com teste de git clone...\n"
+  echo
+  
+  # Tentar fazer clone de teste
+  if git clone --depth 1 "${REPO_URL}" "${TEST_DIR}" >/dev/null 2>&1; then
+    # Clone bem-sucedido, remover diretório de teste
+    rm -rf "${TEST_DIR}" >/dev/null 2>&1
+    printf "${GREEN}✅ Token validado com sucesso! Git clone funcionou corretamente.${WHITE}\n"
+    echo
+    sleep 2
+    
+    # Executar o instalador WhatsMeow
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    WHATSMEOW_SCRIPT="${SCRIPT_DIR}/instalador_whatsmeow.sh"
+    
+    if [ -f "$WHATSMEOW_SCRIPT" ]; then
+      printf "${GREEN} >> Executando Instalador API WhatsMeow...${WHITE}\n"
+      echo
+      bash "$WHATSMEOW_SCRIPT"
+      echo
+      printf "${GREEN} >> Pressione Enter para voltar ao menu de ferramentas...${WHITE}\n"
+      read -r
+    else
+      printf "${RED} >> Erro: Arquivo ${WHATSMEOW_SCRIPT} não encontrado!${WHITE}\n"
+      printf "${RED} >> Certifique-se de que o arquivo instalador_whatsmeow.sh está no mesmo diretório do instalador.${WHITE}\n"
+      sleep 3
+    fi
+  else
+    # Clone falhou, token inválido
+    rm -rf "${TEST_DIR}" >/dev/null 2>&1
+    printf "${RED}══════════════════════════════════════════════════════════════════${WHITE}\n"
+    printf "${RED}❌ ERRO: Token de autorização inválido!${WHITE}\n"
+    echo
+    printf "${RED}   O teste de git clone falhou. O token informado não tem acesso ao repositório multiflow-pro.${WHITE}\n"
+    echo
+    printf "${YELLOW}   ⚠️  IMPORTANTE:${WHITE}\n"
+    printf "${YELLOW}   O MultiFlow é um projeto fechado e requer autorização especial.${WHITE}\n"
+    printf "${YELLOW}   Para solicitar acesso ou analisar a disponibilidade,${WHITE}\n"
+    printf "${YELLOW}   entre em contato com o suporte:${WHITE}\n"
+    echo
+    printf "${BLUE}   📱 WhatsApp:${WHITE}\n"
+    printf "${WHITE}   • https://wa.me/5${WHITE}\n"
+    printf "${WHITE}   • https://wa.me/5${WHITE}\n"
+    echo
+    printf "${RED}   Instalação interrompida.${WHITE}\n"
+    printf "${RED}══════════════════════════════════════════════════════════════════${WHITE}\n"
+    echo
+    printf "${GREEN} >> Pressione Enter para voltar ao menu de ferramentas...${WHITE}\n"
+    read -r
+  fi
+}
+
 # Menu de Ferramentas
 menu_ferramentas() {
   while true; do
@@ -150,6 +246,7 @@ menu_ferramentas() {
     echo
     printf "   [${BLUE}1${WHITE}] Instalador RabbitMQ\n"
     printf "   [${BLUE}2${WHITE}] Instalar Push Notifications\n"
+    printf "   [${BLUE}3${WHITE}] Instalar API WhatsMeow\n"
     printf "   [${BLUE}0${WHITE}] Voltar ao Menu Principal\n"
     echo
     read -p "> " option_tools
@@ -184,6 +281,9 @@ menu_ferramentas() {
         sleep 3
       fi
       ;;
+    3)
+      instalar_whatsmeow
+      ;;
     0)
       return
       ;;
@@ -202,10 +302,8 @@ menu() {
     printf "${WHITE} Selecione abaixo a opção desejada: \n"
     echo
     printf "   [${BLUE}1${WHITE}] Instalar ${nome_titulo}\n"
-    printf "   [${BLUE}2${WHITE}] Atualizar ${nome_titulo}\n"
     printf "   [${BLUE}3${WHITE}] Instalar Transcrição de Audio Nativa\n"
     printf "   [${BLUE}4${WHITE}] Instalar API Oficial\n"
-    printf "   [${BLUE}5${WHITE}] Atualizar API Oficial\n"
     printf "   [${BLUE}0${WHITE}] Sair\n"
     echo
     read -p "> " option
@@ -412,10 +510,23 @@ verificar_dns_base() {
   verificar_dns ${subdominio_frontend}
   if [ -n "${subdominios_incorretos}" ]; then
     echo
-    echo "Verifique os apontamentos de DNS dos seguintes subdomínios: ${subdominios_incorretos}"
-    sleep 2
-    menu
-    return 0
+    printf "${YELLOW} >> ATENÇÃO: Os seguintes subdomínios não estão apontando para o IP público atual (${ip_atual}):${WHITE}\n"
+    printf "${YELLOW} >> ${subdominios_incorretos}${WHITE}\n"
+    echo
+    printf "${WHITE} >> Deseja continuar a instalação mesmo assim? (S/N): ${WHITE}\n"
+    echo
+    read -p "> " continuar_dns
+    continuar_dns=$(echo "${continuar_dns}" | tr '[:lower:]' '[:upper:]')
+    echo
+    if [ "${continuar_dns}" != "S" ]; then
+      printf "${GREEN} >> Retornando ao menu principal...${WHITE}\n"
+      sleep 2
+      menu
+      return 0
+    else
+      printf "${YELLOW} >> Continuando a instalação mesmo com DNS não configurado corretamente...${WHITE}\n"
+      sleep 2
+    fi
   else
     echo "Todos os subdomínios estão apontando corretamente para o IP público da VPS."
     sleep 2
@@ -786,15 +897,114 @@ instala_node_base() {
  printf "${WHITE} >> Instalando nodejs...\n"
  echo
   {
-    sudo su - root <<EOF
-  curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
-  sudo sh -c "echo deb https://deb.nodesource.com/node_20.x focal main \ > /etc/apt/sources.list.d/nodesource.list"
-  sudo apt-get update && apt-get install nodejs -y
-  sudo npm install -g n
-  sudo n 20.19.4
-  sudo ln -sf /usr/local/n/versions/node/20.19.4/bin/node /usr/bin/node
-  sudo ln -sf /usr/local/n/versions/node/20.19.4/bin/npm /usr/bin/npm
-EOF
+    sudo su - root <<'NODEINSTALL'
+    # Remove repositórios antigos do NodeSource que podem estar causando problemas
+    rm -f /etc/apt/sources.list.d/nodesource.list 2>/dev/null
+    rm -f /etc/apt/sources.list.d/nodesource*.list 2>/dev/null
+    
+    # Tenta primeiro com Node.js 22.x (LTS atual disponível no repositório oficial)
+    printf " >> Tentando instalar Node.js 22.x LTS (repositório oficial)...\n"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - 2>&1 | grep -v "does not have a Release file" || {
+      printf " >> Node.js 22.x não disponível. Tentando Node.js 20.x...\n"
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | grep -v "does not have a Release file" || {
+        printf " >> Erro ao configurar repositório. Tentando método alternativo...\n"
+        # Método alternativo: baixa e executa o script manualmente
+        curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh 2>/dev/null || \
+        curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh
+        bash /tmp/nodesource_setup.sh 2>&1 | grep -v "does not have a Release file" || {
+          printf " >> Falha ao configurar repositório NodeSource.\n"
+          exit 1
+        }
+      }
+    }
+    
+    # Atualiza lista de pacotes (ignorando erros de outros repositórios)
+    printf " >> Atualizando lista de pacotes...\n"
+    apt-get update -y 2>&1 | grep -v "does not have a Release file" | grep -v "Key is stored in legacy" || true
+    
+    # Instala Node.js
+    printf " >> Instalando Node.js...\n"
+    apt-get install -y nodejs || {
+      printf " >> Erro ao instalar Node.js via apt.\n"
+      exit 1
+    }
+    
+    # Verifica se Node.js foi instalado
+    if ! command -v node &> /dev/null; then
+      printf " >> Erro: Node.js não foi encontrado no PATH após instalação.\n"
+      printf " >> Verificando localização...\n"
+      find /usr -name node -type f 2>/dev/null | head -5
+      exit 1
+    fi
+    
+    # Verifica se npm está disponível
+    if ! command -v npm &> /dev/null; then
+      printf " >> Erro: npm não foi encontrado no PATH após instalação.\n"
+      printf " >> Verificando localização...\n"
+      find /usr -name npm -type f 2>/dev/null | head -5
+      exit 1
+    fi
+    
+    # Mostra versões instaladas
+    printf " >> Node.js instalado: "
+    node --version
+    printf " >> npm instalado: "
+    npm --version
+    
+    # Instala o gerenciador de versões 'n' e configura a versão específica 20.19.4
+    printf " >> Instalando gerenciador de versões 'n'...\n"
+    npm install -g n || {
+      printf " >> Aviso: Não foi possível instalar 'n'. Continuando com versão padrão.\n"
+    }
+    
+    # Tenta instalar versão específica se 'n' foi instalado
+    if command -v n &> /dev/null; then
+      printf " >> Configurando Node.js versão 20.19.4...\n"
+      n 20.19.4 || {
+        printf " >> Aviso: Não foi possível instalar versão específica. Usando versão padrão.\n"
+      }
+      
+      # Garante que os binários estão no PATH do sistema
+      if [ -f /usr/local/n/versions/node/20.19.4/bin/node ]; then
+        ln -sf /usr/local/n/versions/node/20.19.4/bin/node /usr/bin/node
+        ln -sf /usr/local/n/versions/node/20.19.4/bin/npm /usr/bin/npm
+        ln -sf /usr/local/n/versions/node/20.19.4/bin/npx /usr/bin/npx 2>/dev/null || true
+      fi
+    fi
+    
+    # Cria links simbólicos para garantir acesso global
+    NODE_BIN=$(which node 2>/dev/null || find /usr -name node -type f 2>/dev/null | head -1)
+    NPM_BIN=$(which npm 2>/dev/null || find /usr -name npm -type f 2>/dev/null | head -1)
+    
+    if [ -n "$NODE_BIN" ] && [ "$NODE_BIN" != "/usr/bin/node" ]; then
+      ln -sf "$NODE_BIN" /usr/bin/node
+    fi
+    
+    if [ -n "$NPM_BIN" ] && [ "$NPM_BIN" != "/usr/bin/npm" ]; then
+      ln -sf "$NPM_BIN" /usr/bin/npm
+    fi
+    
+    # Atualiza o PATH no perfil do sistema
+    if ! grep -q "/usr/local/n/versions/node" /etc/profile 2>/dev/null; then
+      echo 'export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:$PATH' >> /etc/profile
+    fi
+    
+    # Atualiza o PATH no bashrc do root e deploy
+    for user_home in /root /home/deploy; do
+      if [ -d "$user_home" ]; then
+        if ! grep -q "/usr/local/n/versions/node" "$user_home/.bashrc" 2>/dev/null; then
+          echo 'export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:$PATH' >> "$user_home/.bashrc"
+        fi
+      fi
+    done
+    
+    # Verifica novamente se node e npm estão disponíveis
+    printf " >> Verificando instalação final...\n"
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:$PATH
+    node --version || exit 1
+    npm --version || exit 1
+NODEINSTALL
+    
     sleep 2
   } || trata_erro "instala_node_base"
 }
@@ -818,12 +1028,82 @@ instala_pm2_base() {
   banner
   printf "${WHITE} >> Instalando pm2...\n"
   echo
+  
   {
-    sudo su - root <<EOF
-  npm install -g pm2
-  pm2 startup ubuntu -u deploy
-  env PATH=\${PATH}:/usr/bin pm2 startup ubuntu -u deploy --hp /home/deploy
-EOF
+    sudo su - root <<'PM2INSTALL'
+    # Configura PATH para incluir Node.js
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:$PATH
+    
+    # Tenta encontrar node em vários locais possíveis
+    NODE_BIN=""
+    if command -v node &> /dev/null; then
+      NODE_BIN=$(which node)
+      printf " >> Node.js encontrado em: $NODE_BIN\n"
+    elif [ -f /usr/local/n/versions/node/20.19.4/bin/node ]; then
+      NODE_BIN="/usr/local/n/versions/node/20.19.4/bin/node"
+      export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:$PATH
+      printf " >> Node.js encontrado em: $NODE_BIN\n"
+    elif [ -f /usr/bin/node ]; then
+      NODE_BIN="/usr/bin/node"
+      printf " >> Node.js encontrado em: $NODE_BIN\n"
+    else
+      printf " >> ERRO: Node.js não está instalado ou não foi encontrado no sistema.\n"
+      printf " >> Procurando Node.js no sistema...\n"
+      find /usr -name node -type f 2>/dev/null | head -5
+      exit 1
+    fi
+    
+    # Verifica npm
+    if ! command -v npm &> /dev/null; then
+      printf " >> ERRO: npm não está instalado ou não foi encontrado no sistema.\n"
+      printf " >> Procurando npm no sistema...\n"
+      find /usr -name npm -type f 2>/dev/null | head -5
+      exit 1
+    fi
+    
+    # Mostra versões
+    printf " >> Versão do Node.js: "
+    node --version || exit 1
+    printf " >> Versão do npm: "
+    npm --version || exit 1
+    
+    # Instala PM2 globalmente
+    printf " >> Instalando PM2...\n"
+    npm install -g pm2 || {
+      printf " >> Erro ao instalar PM2. Tentando com sudo...\n"
+      exit 1
+    }
+    
+    # Verifica se PM2 foi instalado
+    if ! command -v pm2 &> /dev/null; then
+      printf " >> PM2 não encontrado no PATH. Procurando...\n"
+      PM2_BIN=$(find /usr -name pm2 -type f 2>/dev/null | head -1)
+      if [ -n "$PM2_BIN" ]; then
+        printf " >> PM2 encontrado em: $PM2_BIN\n"
+        ln -sf "$PM2_BIN" /usr/bin/pm2 2>/dev/null || true
+      else
+        printf " >> ERRO: PM2 não foi instalado corretamente\n"
+        exit 1
+      fi
+    fi
+    
+    printf " >> PM2 instalado com sucesso!\n"
+    pm2 --version || exit 1
+    
+    # Configura o PM2 para iniciar automaticamente
+    printf " >> Configurando PM2 para iniciar automaticamente...\n"
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:$PATH
+    
+    # Garante que o usuário deploy existe
+    if id "deploy" &>/dev/null; then
+      pm2 startup ubuntu -u deploy --hp /home/deploy || {
+        printf " >> Aviso: Não foi possível configurar startup automático. Continuando...\n"
+      }
+    else
+      printf " >> Aviso: Usuário deploy não existe ainda. Startup será configurado depois.\n"
+    fi
+PM2INSTALL
+    
     sleep 2
   } || trata_erro "instala_pm2_base"
 }
@@ -1095,6 +1375,25 @@ instala_backend_base() {
   banner
   printf "${WHITE} >> Configurando variáveis de ambiente do ${BLUE}backend${WHITE}...\n"
   echo
+  
+  # Verifica se a variável empresa está definida
+  if [ -z "${empresa}" ]; then
+    printf "${RED} >> ERRO: Variável 'empresa' não está definida!\n${WHITE}"
+    printf "${YELLOW} >> Carregando variáveis salvas...\n${WHITE}"
+    carregar_variaveis
+    if [ -z "${empresa}" ]; then
+      printf "${RED} >> ERRO: Não foi possível carregar a variável 'empresa'. Abortando.\n${WHITE}"
+      exit 1
+    fi
+  fi
+  
+  # Verifica se o diretório do código existe
+  if [ ! -d "/home/deploy/${empresa}" ]; then
+    printf "${RED} >> ERRO: Diretório /home/deploy/${empresa} não existe!\n${WHITE}"
+    printf "${YELLOW} >> O código precisa ser clonado primeiro. Verifique a etapa anterior.\n${WHITE}"
+    exit 1
+  fi
+  
   {
     sleep 2
     subdominio_backend=$(echo "${subdominio_backend/https:\/\//}")
@@ -1108,7 +1407,7 @@ instala_backend_base() {
     # subdominio_perfex=https://${subdominio_perfex}
     sudo su - deploy <<EOF
   cat <<[-]EOF > /home/deploy/${empresa}/backend/.env
-# Equipechat - All Rights Reserved - 55 81 9998-8876
+# Scripts Equipechat - All Rights Reserved - (18) 81 9998-8876
 NODE_ENV=
 BACKEND_URL=${subdominio_backend}
 FRONTEND_URL=${subdominio_frontend}
@@ -1201,56 +1500,151 @@ EOF
     banner
     printf "${WHITE} >> Instalando dependências do ${BLUE}backend${WHITE}...\n"
     echo
-    sudo su - deploy <<EOF
-  cd /home/deploy/${empresa}/backend
+    sudo su - deploy <<BACKENDINSTALL
+  # Configura PATH para Node.js
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  elif [ -f /usr/bin/node ]; then
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  else
+    # Tenta encontrar node no sistema
+    NODE_DIR=\$(find /usr -type d -name "node" -o -type f -name "node" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+    if [ -n "\$NODE_DIR" ]; then
+      export PATH=\$NODE_DIR:/usr/bin:\$PATH
+    fi
+  fi
+  
+  # Verifica se node e npm estão disponíveis
+  if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo "ERRO: Node.js ou npm não encontrado. PATH atual: \$PATH"
+    which node || echo "node não encontrado"
+    which npm || echo "npm não encontrado"
+    exit 1
+  fi
+  
+  # Verifica se o diretório existe antes de tentar acessar
+  BACKEND_DIR="/home/deploy/${empresa}/backend"
+  if [ ! -d "\$BACKEND_DIR" ]; then
+    echo "ERRO: Diretório do backend não existe: \$BACKEND_DIR"
+    echo "Verificando diretórios disponíveis em /home/deploy/${empresa}/..."
+    ls -la /home/deploy/${empresa}/ 2>/dev/null || echo "Diretório /home/deploy/${empresa}/ não existe"
+    exit 1
+  fi
+  
+  cd "\$BACKEND_DIR"
+  
+  # Verifica se package.json existe
+  if [ ! -f "package.json" ]; then
+    echo "ERRO: package.json não encontrado em \$BACKEND_DIR"
+    echo "Conteúdo do diretório:"
+    ls -la
+    exit 1
+  fi
+  
   export PUPPETEER_SKIP_DOWNLOAD=true
-  rm -r node_modules
-  rm package-lock.json
+  rm -rf node_modules 2>/dev/null || true
+  rm -f package-lock.json 2>/dev/null || true
   npm install --force
   npm install puppeteer-core --force
-  # npm install --save-dev @types/glob --legacy-peer-deps
   npm i glob
-  # npm install jimp@^1.6.0
   npm run build
-EOF
+BACKENDINSTALL
 
     sleep 2
 
-    sudo su - deploy <<EOF
-  sed -i 's|npm3Binary = .*|npm3Binary = "/usr/bin/ffmpeg";|' ${empresa}/backend/node_modules/@ffmpeg-installer/ffmpeg/index.js
-  mkdir -p /home/deploy/${empresa}/backend/node_modules/@ffmpeg-installer/linux-x64/ && \
-  echo '{ "version": "1.1.0", "name": "@ffmpeg-installer/linux-x64" }' > ${empresa}/backend/node_modules/@ffmpeg-installer/linux-x64/package.json
-EOF
+    sudo su - deploy <<FFMPEGFIX
+  BACKEND_DIR="/home/deploy/${empresa}/backend"
+  FFMPEG_FILE="\${BACKEND_DIR}/node_modules/@ffmpeg-installer/ffmpeg/index.js"
+  
+  # Verifica se o arquivo existe antes de tentar modificá-lo
+  if [ -f "\$FFMPEG_FILE" ]; then
+    sed -i 's|npm3Binary = .*|npm3Binary = "/usr/bin/ffmpeg";|' "\$FFMPEG_FILE"
+  else
+    echo "Aviso: Arquivo ffmpeg-installer não encontrado. Pulando modificação."
+  fi
+  
+  # Cria o diretório e arquivo se necessário
+  mkdir -p "\${BACKEND_DIR}/node_modules/@ffmpeg-installer/linux-x64/" 2>/dev/null || true
+  if [ -d "\${BACKEND_DIR}/node_modules/@ffmpeg-installer/linux-x64/" ]; then
+    echo '{ "version": "1.1.0", "name": "@ffmpeg-installer/linux-x64" }' > "\${BACKEND_DIR}/node_modules/@ffmpeg-installer/linux-x64/package.json"
+  fi
+FFMPEGFIX
 
     sleep 2
 
     banner
     printf "${WHITE} >> Executando db:migrate...\n"
     echo
-    sudo su - deploy <<EOF
-  cd /home/deploy/${empresa}/backend
+    sudo su - deploy <<MIGRATEINSTALL
+  # Configura PATH para Node.js
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  BACKEND_DIR="/home/deploy/${empresa}/backend"
+  if [ ! -d "\$BACKEND_DIR" ]; then
+    echo "ERRO: Diretório do backend não existe: \$BACKEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$BACKEND_DIR"
   npx sequelize db:migrate
-EOF
+MIGRATEINSTALL
 
     sleep 2
 
     banner
     printf "${WHITE} >> Executando db:seed...\n"
     echo
-    sudo su - deploy <<EOF
-  cd /home/deploy/${empresa}/backend
+    sudo su - deploy <<SEEDINSTALL
+  # Configura PATH para Node.js
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  BACKEND_DIR="/home/deploy/${empresa}/backend"
+  if [ ! -d "\$BACKEND_DIR" ]; then
+    echo "ERRO: Diretório do backend não existe: \$BACKEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$BACKEND_DIR"
   npx sequelize db:seed:all
-EOF
+SEEDINSTALL
 
     sleep 2
 
     banner
     printf "${WHITE} >> Iniciando pm2 ${BLUE}backend${WHITE}...\n"
     echo
-    sudo su - deploy <<EOF
-  cd /home/deploy/${empresa}/backend
+    sudo su - deploy <<PM2BACKEND
+  # Configura PATH para Node.js e PM2
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  BACKEND_DIR="/home/deploy/${empresa}/backend"
+  if [ ! -d "\$BACKEND_DIR" ]; then
+    echo "ERRO: Diretório do backend não existe: \$BACKEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$BACKEND_DIR"
+  
+  # Verifica se o arquivo dist/server.js existe
+  if [ ! -f "dist/server.js" ]; then
+    echo "ERRO: Arquivo dist/server.js não encontrado. O build pode ter falhado."
+    exit 1
+  fi
+  
   pm2 start dist/server.js --name ${empresa}-backend
-EOF
+PM2BACKEND
 
     sleep 2
   } || trata_erro "instala_backend_base"
@@ -1261,12 +1655,51 @@ instala_frontend_base() {
   banner
   printf "${WHITE} >> Instalando dependências do ${BLUE}frontend${WHITE}...\n"
   echo
+  
+  # Verifica se a variável empresa está definida
+  if [ -z "${empresa}" ]; then
+    printf "${RED} >> ERRO: Variável 'empresa' não está definida!\n${WHITE}"
+    printf "${YELLOW} >> Carregando variáveis salvas...\n${WHITE}"
+    carregar_variaveis
+    if [ -z "${empresa}" ]; then
+      printf "${RED} >> ERRO: Não foi possível carregar a variável 'empresa'. Abortando.\n${WHITE}"
+      exit 1
+    fi
+  fi
+  
+  # Verifica se o diretório do código existe
+  if [ ! -d "/home/deploy/${empresa}" ]; then
+    printf "${RED} >> ERRO: Diretório /home/deploy/${empresa} não existe!\n${WHITE}"
+    printf "${YELLOW} >> O código precisa ser clonado primeiro. Verifique a etapa anterior.\n${WHITE}"
+    exit 1
+  fi
+  
   {
-    sudo su - deploy <<EOF
-  cd /home/deploy/${empresa}/frontend
+    sudo su - deploy <<FRONTENDINSTALL
+  # Configura PATH para Node.js
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  FRONTEND_DIR="/home/deploy/${empresa}/frontend"
+  if [ ! -d "\$FRONTEND_DIR" ]; then
+    echo "ERRO: Diretório do frontend não existe: \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$FRONTEND_DIR"
+  
+  # Verifica se package.json existe
+  if [ ! -f "package.json" ]; then
+    echo "ERRO: package.json não encontrado em \$FRONTEND_DIR"
+    exit 1
+  fi
+  
   npm install --force
   npx browserslist@latest --update-db
-EOF
+FRONTENDINSTALL
 
     sleep 2
 
@@ -1295,22 +1728,62 @@ EOF
     banner
     printf "${WHITE} >> Compilando o código do ${BLUE}frontend${WHITE}...\n"
     echo
-    sudo su - deploy <<EOF
-    cd /home/deploy/${empresa}/frontend
-    sed -i 's/3000/'"${frontend_port}"'/g' server.js
-    NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" npm run build
-EOF
+    sudo su - deploy <<FRONTENDBUILD
+  # Configura PATH para Node.js
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  FRONTEND_DIR="/home/deploy/${empresa}/frontend"
+  if [ ! -d "\$FRONTEND_DIR" ]; then
+    echo "ERRO: Diretório do frontend não existe: \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$FRONTEND_DIR"
+  
+  # Verifica se server.js existe
+  if [ ! -f "server.js" ]; then
+    echo "ERRO: Arquivo server.js não encontrado em \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  sed -i 's/3000/'"${frontend_port}"'/g' server.js
+  NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" npm run build
+FRONTENDBUILD
 
     sleep 2
 
     banner
     printf "${WHITE} >> Iniciando pm2 ${BLUE}frontend${WHITE}...\n"
     echo
-    sudo su - deploy <<EOF
-    cd /home/deploy/${empresa}/frontend
-    pm2 start server.js --name ${empresa}-frontend
-    pm2 save
-EOF
+    sudo su - deploy <<PM2FRONTEND
+  # Configura PATH para Node.js e PM2
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  FRONTEND_DIR="/home/deploy/${empresa}/frontend"
+  if [ ! -d "\$FRONTEND_DIR" ]; then
+    echo "ERRO: Diretório do frontend não existe: \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$FRONTEND_DIR"
+  
+  # Verifica se server.js existe
+  if [ ! -f "server.js" ]; then
+    echo "ERRO: Arquivo server.js não encontrado em \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  pm2 start server.js --name ${empresa}-frontend
+  pm2 save
+PM2FRONTEND
 
     sleep 2
   } || trata_erro "instala_frontend_base"
@@ -1330,6 +1803,18 @@ config_cron_base() {
     chmod +x /home/deploy/atualiza_public.sh >/dev/null 2>&1
     chown deploy:deploy /home/deploy/atualiza_public.sh >/dev/null 2>&1
     echo '#!/bin/bash
+# Configura PATH para Node.js e PM2
+if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+  export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:$PATH
+elif [ -f /usr/bin/node ]; then
+  export PATH=/usr/bin:/usr/local/bin:$PATH
+else
+  # Tenta encontrar node no sistema
+  NODE_DIR=$(find /usr -type d -name "node" -o -type f -name "node" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+  if [ -n "$NODE_DIR" ]; then
+    export PATH=$NODE_DIR:/usr/bin:$PATH
+  fi
+fi
 pm2 restart all' >/home/deploy/reinicia_instancia.sh
     chmod +x /home/deploy/reinicia_instancia.sh
     chown deploy:deploy /home/deploy/reinicia_instancia.sh >/dev/null 2>&1
@@ -1530,9 +2015,15 @@ EOF
 
     sleep 2
 
-    sudo su - deploy <<EOF
+    sudo su - deploy <<'RESTARTPM2'
+  # Configura PATH para Node.js e PM2
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:$PATH
+  fi
   pm2 restart all
-EOF
+RESTARTPM2
 
     sleep 2
   } || trata_erro "config_latencia_base"
@@ -1598,9 +2089,15 @@ baixa_codigo_atualizar() {
   printf "${WHITE} >> Parando Instancias... \n"
   echo
   sleep 2
-  sudo su - deploy <<EOF
+  sudo su - deploy <<'STOPPM2'
+  # Configura PATH para Node.js e PM2
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:$PATH
+  fi
   pm2 stop all
-EOF
+STOPPM2
 
   sleep 2
 
@@ -1613,46 +2110,88 @@ EOF
 
   source /home/deploy/${empresa}/frontend/.env
   frontend_port=${SERVER_PORT:-3000}
-  sudo su - deploy <<EOF
-printf "${WHITE} >> Atualizando Backend...\n"
-echo
-cd /home/deploy/${empresa}
-# git reset --hard
-# git pull
-git fetch origin
-git checkout MULTI100-OFICIAL-u21
-git reset --hard origin/MULTI100-OFICIAL-u21
-cd /home/deploy/${empresa}/backend
-npm prune --force > /dev/null 2>&1
-export PUPPETEER_SKIP_DOWNLOAD=true
-rm -r node_modules
-rm package-lock.json
-npm install --force
-npm install puppeteer-core --force
-npm i glob
-# npm install jimp@^1.6.0
-npm run build
-sleep 2
-printf "${WHITE} >> Atualizando Banco...\n"
-echo
-sleep 2
-npx sequelize db:migrate
-sleep 2
-printf "${WHITE} >> Atualizando Frontend...\n"
-echo
-sleep 2
-cd /home/deploy/${empresa}/frontend
-npm prune --force > /dev/null 2>&1
-npm install --force
-sed -i 's/3000/'"$frontend_port"'/g' server.js
-NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" npm run build
-sleep 2
-pm2 flush
-pm2 reset all
-pm2 restart all
-pm2 save
-pm2 startup
-EOF
+  sudo su - deploy <<UPDATEAPP
+  # Configura PATH para Node.js e PM2
+  if [ -d /usr/local/n/versions/node/20.19.4/bin ]; then
+    export PATH=/usr/local/n/versions/node/20.19.4/bin:/usr/bin:/usr/local/bin:\$PATH
+  else
+    export PATH=/usr/bin:/usr/local/bin:\$PATH
+  fi
+  
+  APP_DIR="/home/deploy/${empresa}"
+  BACKEND_DIR="\${APP_DIR}/backend"
+  FRONTEND_DIR="\${APP_DIR}/frontend"
+  
+  # Verifica se os diretórios existem
+  if [ ! -d "\$APP_DIR" ]; then
+    echo "ERRO: Diretório da aplicação não existe: \$APP_DIR"
+    exit 1
+  fi
+  
+  printf "${WHITE} >> Atualizando Backend...\n"
+  echo
+  cd "\$APP_DIR"
+  git fetch origin
+  git checkout MULTI100-OFICIAL-u21
+  git reset --hard origin/MULTI100-OFICIAL-u21
+  
+  if [ ! -d "\$BACKEND_DIR" ]; then
+    echo "ERRO: Diretório do backend não existe: \$BACKEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$BACKEND_DIR"
+  
+  if [ ! -f "package.json" ]; then
+    echo "ERRO: package.json não encontrado em \$BACKEND_DIR"
+    exit 1
+  fi
+  
+  npm prune --force > /dev/null 2>&1
+  export PUPPETEER_SKIP_DOWNLOAD=true
+  rm -rf node_modules 2>/dev/null || true
+  rm -f package-lock.json 2>/dev/null || true
+  npm install --force
+  npm install puppeteer-core --force
+  npm i glob
+  npm run build
+  sleep 2
+  printf "${WHITE} >> Atualizando Banco...\n"
+  echo
+  sleep 2
+  npx sequelize db:migrate
+  sleep 2
+  printf "${WHITE} >> Atualizando Frontend...\n"
+  echo
+  sleep 2
+  
+  if [ ! -d "\$FRONTEND_DIR" ]; then
+    echo "ERRO: Diretório do frontend não existe: \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  cd "\$FRONTEND_DIR"
+  
+  if [ ! -f "package.json" ]; then
+    echo "ERRO: package.json não encontrado em \$FRONTEND_DIR"
+    exit 1
+  fi
+  
+  npm prune --force > /dev/null 2>&1
+  npm install --force
+  
+  if [ -f "server.js" ]; then
+    sed -i 's/3000/'"$frontend_port"'/g' server.js
+  fi
+  
+  NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" npm run build
+  sleep 2
+  pm2 flush
+  pm2 reset all
+  pm2 restart all
+  pm2 save
+  pm2 startup
+UPDATEAPP
 
   sudo su - root <<EOF
     if systemctl is-active --quiet nginx; then
